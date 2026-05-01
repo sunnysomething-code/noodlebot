@@ -5,7 +5,7 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
 
-const CHANNEL_ID = 'PASTE_CHANNEL_ID_HERE';
+const CHANNEL_ID = '1492756482373058650';
 
 
 const startDate = new Date('2026-03-21');
