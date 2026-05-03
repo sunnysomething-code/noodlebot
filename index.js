@@ -103,15 +103,22 @@ client.once('ready', async () => {
     console.error(err);
   }
 
-  // Run once on startup
+// Run once on startup
+try {
   await updateChannel(client, false);
+} catch (err) {
+  console.error('Startup update failed:', err);
+}
 
-  // Daily update at midnight (Brisbane)
-  cron.schedule('0 0 * * *', async () => {
+// Daily update at midnight (Brisbane)
+cron.schedule('0 0 * * *', async () => {
+  try {
     await updateChannel(client);
-  }, {
-    timezone: 'Australia/Brisbane'
-  });
+  } catch (err) {
+    console.error('Daily update failed:', err);
+  }
+}, {
+  timezone: 'Australia/Brisbane'
 });
 
 // Command handling
