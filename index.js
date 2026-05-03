@@ -1,6 +1,6 @@
-const { 
-  Client, 
-  GatewayIntentBits, 
+const {
+  Client,
+  GatewayIntentBits,
   SlashCommandBuilder,
   REST,
   Routes
@@ -12,31 +12,85 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
 
+// CONFIG (CHANGE THESE)
 const CHANNEL_ID = '1492756482373058650';
+const MESSAGE_CHANNEL_ID = '1362246373960847550';
 const OWNER_ID = '871973279924093028';
 
-// Day system
+// Start date (Day 1)
 const startDate = new Date('2026-03-21');
 
-// Register slash command
+// Main update function
+async function updateChannel(client, sendMessage = true) {
+  const now = new Date();
+  const diffTime = now - startDate;
+
+  const day = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+  // Rename voice channel
+  const voiceChannel = await client.channels.fetch(CHANNEL_ID);
+  if (voiceChannel) {
+    await voiceChannel.setName(`Day: ${day}`);
+  }
+
+  // Send daily message
+  if (sendMessage) {
+    const textChannel = await client.channels.fetch(MESSAGE_CHANNEL_ID);
+    if (textChannel) {
+      await textChannel.send(`📅 Today is **Day ${day}**`);
+    }
+  }
+
+  console.log(`Updated to Day: ${day}`);
+}
+
+// Slash commands
 const commands = [
   new SlashCommandBuilder()
+    .setName('update')
+    .setDescription('Force update the day channel'),
+
+  new SlashCommandBuilder()
+    .setName('day')
+    .setDescription('Show current day'),
+
+  new SlashCommandBuilder()
+    .setName('setday')
+    .setDescription('Temporarily set the day (resets next day)')
+    .addIntegerOption(option =>
+      option.setName('number')
+        .setDescription('Day number')
+        .setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
     .setName('send')
-    .setDescription('Send a message to a channel')
-    .addChannelOption(option =>
-      option.setName('channel')
-        .setDescription('Channel to send to')
-        .setRequired(true))
+    .setDescription('Send a message in this channel')
     .addStringOption(option =>
       option.setName('message')
         .setDescription('Message to send')
-        .setRequired(true))
+        .setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
+    .setName('sendchannel')
+    .setDescription('Send a message to a specific channel')
+    .addChannelOption(option =>
+      option.setName('channel')
+        .setDescription('Channel to send to')
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option.setName('message')
+        .setDescription('Message to send')
+        .setRequired(true)
+    )
+
 ].map(cmd => cmd.toJSON());
 
 client.once('ready', async () => {
   console.log(`Logged in as ${client.user.tag}`);
 
-  // Register command (global)
   const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
   try {
@@ -44,53 +98,119 @@ client.once('ready', async () => {
       Routes.applicationCommands(client.user.id),
       { body: commands }
     );
-    console.log('Slash command registered');
+    console.log('Slash commands registered');
   } catch (err) {
     console.error(err);
   }
 
-  // Daily update
-  cron.schedule('0 0 * * *', async () => {
-    const now = new Date();
-    const diffTime = now - startDate;
-    const day = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  // Run once on startup
+  await updateChannel(client, false);
 
-    const channel = await client.channels.fetch(CHANNEL_ID);
-    if (channel) {
-      await channel.setName(`Day: ${day}`);
-    }
+  // Daily update at midnight (Brisbane)
+  cron.schedule('0 0 * * *', async () => {
+    await updateChannel(client);
   }, {
     timezone: 'Australia/Brisbane'
   });
 });
 
-// Handle command
+// Command handling
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
-  if (interaction.commandName === 'send') {
+  // /day is public
+  if (interaction.commandName === 'day') {
+    const now = new Date();
+    const diffTime = now - startDate;
 
-    // Restrict to you only
-    if (interaction.user.id !== OWNER_ID) {
+    const day = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+    return interaction.reply({
+      content: `📅 Current day is **${day}**`
+    });
+  }
+
+  // Everything else is owner-only
+  if (interaction.user.id !== OWNER_ID) {
+    return interaction.reply({
+      content: 'You cannot use this command.',
+      ephemeral: true
+    });
+  }
+
+  // /update
+  if (interaction.commandName === 'update') {
+    await updateChannel(client);
+
+    return interaction.reply({
+      content: 'Updated!',
+      ephemeral: true
+    });
+  }
+
+  // /setday
+  if (interaction.commandName === 'setday') {
+    const number = interaction.options.getInteger('number');
+
+    try {
+      const voiceChannel = await client.channels.fetch(CHANNEL_ID);
+      if (voiceChannel) {
+        await voiceChannel.setName(`Day: ${number}`);
+      }
+
+      const textChannel = await client.channels.fetch(MESSAGE_CHANNEL_ID);
+      if (textChannel) {
+        await textChannel.send(`📅 Today is **Day ${number}**`);
+      }
+
       return interaction.reply({
-        content: 'You cannot use this command.',
+        content: `Temporarily set to Day ${number}`,
+        ephemeral: true
+      });
+    } catch (err) {
+      console.error(err);
+      return interaction.reply({
+        content: 'Failed to set day.',
         ephemeral: true
       });
     }
+  }
 
+  // /send
+  if (interaction.commandName === 'send') {
+    const message = interaction.options.getString('message');
+
+    try {
+      await interaction.channel.send(message);
+
+      return interaction.reply({
+        content: 'Message sent!',
+        ephemeral: true
+      });
+    } catch (err) {
+      console.error(err);
+      return interaction.reply({
+        content: 'Failed to send message.',
+        ephemeral: true
+      });
+    }
+  }
+
+  // /sendchannel
+  if (interaction.commandName === 'sendchannel') {
     const channel = interaction.options.getChannel('channel');
     const message = interaction.options.getString('message');
 
     try {
       await channel.send(message);
 
-      await interaction.reply({
+      return interaction.reply({
         content: 'Message sent!',
         ephemeral: true
       });
     } catch (err) {
       console.error(err);
-      await interaction.reply({
+      return interaction.reply({
         content: 'Failed to send message.',
         ephemeral: true
       });
