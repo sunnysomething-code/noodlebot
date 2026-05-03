@@ -12,28 +12,30 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
 
-// CONFIG (CHANGE THESE)
+// CONFIG
 const CHANNEL_ID = '1492756482373058650';
 const MESSAGE_CHANNEL_ID = '1362246373960847550';
 const OWNER_ID = '871973279924093028';
 
-// Start date (Day 1)
+// Start date: Day 1
 const startDate = new Date('2026-03-21');
 
-// Main update function
-async function updateChannel(client, sendMessage = true) {
+// Calculate real current day
+function getCurrentDay() {
   const now = new Date();
   const diffTime = now - startDate;
+  return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+}
 
-  const day = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+// Main update function
+async function updateChannel(sendMessage = true) {
+  const day = getCurrentDay();
 
-  // Rename voice channel
   const voiceChannel = await client.channels.fetch(CHANNEL_ID);
   if (voiceChannel) {
     await voiceChannel.setName(`Day: ${day}`);
   }
 
-  // Send daily message
   if (sendMessage) {
     const textChannel = await client.channels.fetch(MESSAGE_CHANNEL_ID);
     if (textChannel) {
@@ -56,7 +58,7 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName('setday')
-    .setDescription('Temporarily set the day (resets next day)')
+    .setDescription('Temporarily set the day until the next real update')
     .addIntegerOption(option =>
       option.setName('number')
         .setDescription('Day number')
@@ -85,8 +87,7 @@ const commands = [
         .setDescription('Message to send')
         .setRequired(true)
     )
-
-].map(cmd => cmd.toJSON());
+].map(command => command.toJSON());
 
 client.once('ready', async () => {
   console.log(`Logged in as ${client.user.tag}`);
@@ -100,44 +101,41 @@ client.once('ready', async () => {
     );
     console.log('Slash commands registered');
   } catch (err) {
-    console.error(err);
+    console.error('Command registration failed:', err);
   }
 
-// Run once on startup
-try {
-  await updateChannel(client, false);
-} catch (err) {
-  console.error('Startup update failed:', err);
-}
-
-// Daily update at midnight (Brisbane)
-cron.schedule('0 0 * * *', async () => {
+  // Run once on startup, but don't send daily message
   try {
-    await updateChannel(client);
+    await updateChannel(false);
   } catch (err) {
-    console.error('Daily update failed:', err);
+    console.error('Startup update failed:', err);
   }
-}, {
-  timezone: 'Australia/Brisbane'
+
+  // Daily update at midnight Brisbane time
+  cron.schedule('0 0 * * *', async () => {
+    try {
+      await updateChannel(true);
+    } catch (err) {
+      console.error('Daily update failed:', err);
+    }
+  }, {
+    timezone: 'Australia/Brisbane'
+  });
 });
 
-// Command handling
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
   // /day is public
   if (interaction.commandName === 'day') {
-    const now = new Date();
-    const diffTime = now - startDate;
-
-    const day = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    const day = getCurrentDay();
 
     return interaction.reply({
       content: `📅 Current day is **${day}**`
     });
   }
 
-  // Everything else is owner-only
+  // All other commands are owner-only
   if (interaction.user.id !== OWNER_ID) {
     return interaction.reply({
       content: 'You cannot use this command.',
@@ -147,15 +145,24 @@ client.on('interactionCreate', async interaction => {
 
   // /update
   if (interaction.commandName === 'update') {
-    await updateChannel(client);
+    try {
+      await updateChannel(true);
 
-    return interaction.reply({
-      content: 'Updated!',
-      ephemeral: true
-    });
+      return interaction.reply({
+        content: 'Updated!',
+        ephemeral: true
+      });
+    } catch (err) {
+      console.error('Manual update failed:', err);
+
+      return interaction.reply({
+        content: 'Failed to update.',
+        ephemeral: true
+      });
+    }
   }
 
-  // /setday
+  // /setday temporary override
   if (interaction.commandName === 'setday') {
     const number = interaction.options.getInteger('number');
 
@@ -175,7 +182,8 @@ client.on('interactionCreate', async interaction => {
         ephemeral: true
       });
     } catch (err) {
-      console.error(err);
+      console.error('Setday failed:', err);
+
       return interaction.reply({
         content: 'Failed to set day.',
         ephemeral: true
@@ -183,7 +191,7 @@ client.on('interactionCreate', async interaction => {
     }
   }
 
-  // /send
+  // /send sends in current channel
   if (interaction.commandName === 'send') {
     const message = interaction.options.getString('message');
 
@@ -195,7 +203,8 @@ client.on('interactionCreate', async interaction => {
         ephemeral: true
       });
     } catch (err) {
-      console.error(err);
+      console.error('Send failed:', err);
+
       return interaction.reply({
         content: 'Failed to send message.',
         ephemeral: true
@@ -203,7 +212,7 @@ client.on('interactionCreate', async interaction => {
     }
   }
 
-  // /sendchannel
+  // /sendchannel sends in selected channel
   if (interaction.commandName === 'sendchannel') {
     const channel = interaction.options.getChannel('channel');
     const message = interaction.options.getString('message');
@@ -216,7 +225,8 @@ client.on('interactionCreate', async interaction => {
         ephemeral: true
       });
     } catch (err) {
-      console.error(err);
+      console.error('Sendchannel failed:', err);
+
       return interaction.reply({
         content: 'Failed to send message.',
         ephemeral: true
