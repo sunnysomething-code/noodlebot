@@ -18,7 +18,7 @@ const MESSAGE_CHANNEL_ID = '1362246373960847550';
 const OWNER_ID = '871973279924093028';
 
 // Start date: Day 1
-const startDate = new Date('2026-03-21');
+const startDate = new Date('2026-03-22');
 
 // Calculate real current day
 function getCurrentDay() {
