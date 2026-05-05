@@ -15,7 +15,10 @@ const client = new Client({
 // CONFIG
 const CHANNEL_ID = '1492756482373058650';
 const MESSAGE_CHANNEL_ID = '1362246373960847550';
-const OWNER_ID = '871973279924093028';
+const OWNER_IDS = [
+  '871973279924093028',
+  'OTHER_USER_ID_HERE'
+];
 
 // Start date: Day 1
 const startDate = new Date('2026-03-21');
@@ -136,7 +139,7 @@ client.on('interactionCreate', async interaction => {
   }
 
   // All other commands are owner-only
-  if (interaction.user.id !== OWNER_ID) {
+  if (!OWNER_IDS.includes(interaction.user.id)) {
     return interaction.reply({
       content: 'You cannot use this command.',
       ephemeral: true
