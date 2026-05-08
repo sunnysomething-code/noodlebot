@@ -21,7 +21,7 @@ const OWNER_IDS = [
 ];
 
 // Start date: Day 1
-const startDate = new Date('2026-03-21');
+const startDate = new Date('2026-03-20');
 
 // Calculate real current day
 function getCurrentDay() {
@@ -53,15 +53,19 @@ async function updateChannel(sendMessage = true) {
 const commands = [
   new SlashCommandBuilder()
     .setName('update')
-    .setDescription('Force update the day channel'),
+    .setDescription('Restricted to bot owner'),
 
   new SlashCommandBuilder()
     .setName('day')
     .setDescription('Show current day'),
 
   new SlashCommandBuilder()
+  .setName('noodlebox')
+  .setDescription('Information about the NoodleBox server'),
+
+  new SlashCommandBuilder()
     .setName('setday')
-    .setDescription('Temporarily set the day until the next real update')
+    .setDescription('Restricted to bot owner')
     .addIntegerOption(option =>
       option.setName('number')
         .setDescription('Day number')
@@ -70,7 +74,7 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName('send')
-    .setDescription('Send a message in this channel')
+    .setDescription('Restricted to bot owner')
     .addStringOption(option =>
       option.setName('message')
         .setDescription('Message to send')
@@ -79,7 +83,7 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName('sendchannel')
-    .setDescription('Send a message to a specific channel')
+    .setDescription('Restricted to bot owner')
     .addChannelOption(option =>
       option.setName('channel')
         .setDescription('Channel to send to')
@@ -137,6 +141,20 @@ client.on('interactionCreate', async interaction => {
       content: `📅 Current day is **${day}**`
     });
   }
+
+  // /noodlebox is public
+if (interaction.commandName === 'noodlebox') {
+  return interaction.reply({
+    content:
+`# 🍜 NoodleBox
+
+NoodleBox is a modded Minecraft server created as a fun server for friends; with mods from magic to mechanics, with a little something for anyone.
+
+The server, created and currently run by Liam, began more humble, with only a few friends and barely any mods, but grew to be very modded with many players and is currently on Season 3 of its existence.
+
+The current season began on March 21st 2026 running Forge 1.20.1.`
+  });
+}
 
   // All other commands are owner-only
   if (!OWNER_IDS.includes(interaction.user.id)) {
