@@ -21,7 +21,7 @@ const OWNER_IDS = [
 ];
 
 // Start date: Day 1
-const startDate = new Date('2026-03-20');
+const startDate = new Date('2026-03-21');
 
 // Calculate real current day
 function getCurrentDay() {
