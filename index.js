@@ -40,21 +40,27 @@ function getCurrentDay() {
   return Math.floor((today - start) / (1000 * 60 * 60 * 24)) + 1;
 }
 
-// Log commands to another channel/server
+// Log commands
 async function logCommand(interaction) {
   try {
     const logChannel = await client.channels.fetch(LOG_CHANNEL_ID);
+
     if (!logChannel) return;
 
-    const commandText = `/${interaction.commandName} ${interaction.options.data
+    const options = interaction.options.data
       .map(option => {
         if (option.user) return `@${option.user.username}`;
         if (option.channel) return `#${option.channel.name}`;
         return option.value;
       })
-      .join(' ')}`.trim();
+      .join(' ');
 
-    await logChannel.send(`<@${interaction.user.id}>\n${commandText}`);
+    const commandText = `/${interaction.commandName} ${options}`.trim();
+
+    await logChannel.send(
+      `<@${interaction.user.id}>\n${commandText}`
+    );
+
   } catch (err) {
     console.error('Command log failed:', err);
   }
@@ -64,13 +70,17 @@ async function logCommand(interaction) {
 async function updateChannel(sendMessage = true) {
   const day = getCurrentDay();
 
+  // Rename voice channel
   const voiceChannel = await client.channels.fetch(CHANNEL_ID);
+
   if (voiceChannel) {
     await voiceChannel.setName(`Day: ${day}`);
   }
 
+  // Send daily message
   if (sendMessage) {
     const textChannel = await client.channels.fetch(MESSAGE_CHANNEL_ID);
+
     if (textChannel) {
       await textChannel.send(`📅 Today is **Day ${day}**`);
     }
@@ -81,9 +91,6 @@ async function updateChannel(sendMessage = true) {
 
 // Slash commands
 const commands = [
-  new SlashCommandBuilder()
-    .setName('update')
-    .setDescription('Force update the day channel'),
 
   new SlashCommandBuilder()
     .setName('day')
@@ -94,8 +101,12 @@ const commands = [
     .setDescription('Information about the NoodleBox server'),
 
   new SlashCommandBuilder()
+    .setName('update')
+    .setDescription('Force update the day channel'),
+
+  new SlashCommandBuilder()
     .setName('setday')
-    .setDescription('Temporarily set the day until the next real update')
+    .setDescription('Temporarily set the day')
     .addIntegerOption(option =>
       option.setName('number')
         .setDescription('Day number')
@@ -113,7 +124,7 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName('sendchannel')
-    .setDescription('Send a message to a specific channel')
+    .setDescription('Send a message in another channel')
     .addChannelOption(option =>
       option.setName('channel')
         .setDescription('Channel to send to')
@@ -124,56 +135,75 @@ const commands = [
         .setDescription('Message to send')
         .setRequired(true)
     )
+
 ].map(command => command.toJSON());
 
+// Bot startup
 client.once('clientReady', async () => {
   console.log(`Logged in as ${client.user.tag}`);
 
-  const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
+  const rest = new REST({ version: '10' })
+    .setToken(process.env.TOKEN);
 
+  // Register slash commands
   try {
     await rest.put(
       Routes.applicationCommands(client.user.id),
       { body: commands }
     );
+
     console.log('Slash commands registered');
+
   } catch (err) {
     console.error('Command registration failed:', err);
   }
 
+  // Startup update
   try {
     await updateChannel(false);
+
   } catch (err) {
     console.error('Startup update failed:', err);
   }
 
+  // Daily midnight update
   cron.schedule('0 0 * * *', async () => {
+
     try {
       await updateChannel(true);
+
     } catch (err) {
       console.error('Daily update failed:', err);
     }
+
   }, {
     timezone: 'Australia/Brisbane'
   });
 });
 
+// Commands
 client.on('interactionCreate', async interaction => {
+
   if (!interaction.isChatInputCommand()) return;
 
+  // Log all commands
   await logCommand(interaction);
 
-  // Public: /day
+  // PUBLIC COMMANDS
+
+  // /day
   if (interaction.commandName === 'day') {
+
     const day = getCurrentDay();
 
     return interaction.reply({
-      content: `📅 Current day is **${day}**`
+      content: `📅 Current day is **Day ${day}**`
     });
   }
 
-  // Public: /noodlebox
+  // /noodlebox
   if (interaction.commandName === 'noodlebox') {
+
     return interaction.reply({
       content:
 `# 🍜 NoodleBox
@@ -186,8 +216,10 @@ The current season began on March 21st 2026 running Forge 1.20.1.`
     });
   }
 
-  // Owner-only commands
+  // OWNER-ONLY COMMANDS
+
   if (!OWNER_IDS.includes(interaction.user.id)) {
+
     return interaction.reply({
       content: 'You cannot use this command.',
       ephemeral: true
@@ -196,6 +228,7 @@ The current season began on March 21st 2026 running Forge 1.20.1.`
 
   // /update
   if (interaction.commandName === 'update') {
+
     try {
       await updateChannel(true);
 
@@ -203,7 +236,9 @@ The current season began on March 21st 2026 running Forge 1.20.1.`
         content: 'Updated!',
         ephemeral: true
       });
+
     } catch (err) {
+
       console.error('Manual update failed:', err);
 
       return interaction.reply({
@@ -215,15 +250,19 @@ The current season began on March 21st 2026 running Forge 1.20.1.`
 
   // /setday
   if (interaction.commandName === 'setday') {
+
     const number = interaction.options.getInteger('number');
 
     try {
+
       const voiceChannel = await client.channels.fetch(CHANNEL_ID);
+
       if (voiceChannel) {
         await voiceChannel.setName(`Day: ${number}`);
       }
 
       const textChannel = await client.channels.fetch(MESSAGE_CHANNEL_ID);
+
       if (textChannel) {
         await textChannel.send(`📅 Today is **Day ${number}**`);
       }
@@ -232,7 +271,9 @@ The current season began on March 21st 2026 running Forge 1.20.1.`
         content: `Temporarily set to Day ${number}`,
         ephemeral: true
       });
+
     } catch (err) {
+
       console.error('Setday failed:', err);
 
       return interaction.reply({
@@ -244,16 +285,20 @@ The current season began on March 21st 2026 running Forge 1.20.1.`
 
   // /send
   if (interaction.commandName === 'send') {
+
     const message = interaction.options.getString('message');
 
     try {
+
       await interaction.channel.send(message);
 
       return interaction.reply({
         content: 'Message sent!',
         ephemeral: true
       });
+
     } catch (err) {
+
       console.error('Send failed:', err);
 
       return interaction.reply({
@@ -265,17 +310,21 @@ The current season began on March 21st 2026 running Forge 1.20.1.`
 
   // /sendchannel
   if (interaction.commandName === 'sendchannel') {
+
     const channel = interaction.options.getChannel('channel');
     const message = interaction.options.getString('message');
 
     try {
+
       await channel.send(message);
 
       return interaction.reply({
         content: 'Message sent!',
         ephemeral: true
       });
+
     } catch (err) {
+
       console.error('Sendchannel failed:', err);
 
       return interaction.reply({
@@ -284,228 +333,8 @@ The current season began on March 21st 2026 running Forge 1.20.1.`
       });
     }
   }
+
 });
 
-client.login(process.env.TOKEN);  const voiceChannel = await client.channels.fetch(CHANNEL_ID);
-  if (voiceChannel) {
-    await voiceChannel.setName(`Day: ${day}`);
-  }
-
-  if (sendMessage) {
-    const textChannel = await client.channels.fetch(MESSAGE_CHANNEL_ID);
-    if (textChannel) {
-      await textChannel.send(`📅 Today is **Day ${day}**`);
-    }
-  }
-
-  console.log(`Updated to Day: ${day}`);
-}
-
-// Slash commands
-const commands = [
-  new SlashCommandBuilder()
-    .setName('update')
-    .setDescription('Restricted to bot owner'),
-
-  new SlashCommandBuilder()
-    .setName('day')
-    .setDescription('Show current day'),
-
-  new SlashCommandBuilder()
-  .setName('noodlebox')
-  .setDescription('Information about the NoodleBox server'),
-
-  new SlashCommandBuilder()
-    .setName('setday')
-    .setDescription('Restricted to bot owner')
-    .addIntegerOption(option =>
-      option.setName('number')
-        .setDescription('Day number')
-        .setRequired(true)
-    ),
-
-  new SlashCommandBuilder()
-    .setName('send')
-    .setDescription('Restricted to bot owner')
-    .addStringOption(option =>
-      option.setName('message')
-        .setDescription('Message to send')
-        .setRequired(true)
-    ),
-
-  new SlashCommandBuilder()
-    .setName('sendchannel')
-    .setDescription('Restricted to bot owner')
-    .addChannelOption(option =>
-      option.setName('channel')
-        .setDescription('Channel to send to')
-        .setRequired(true)
-    )
-    .addStringOption(option =>
-      option.setName('message')
-        .setDescription('Message to send')
-        .setRequired(true)
-    )
-].map(command => command.toJSON());
-
-client.once('ready', async () => {
-  console.log(`Logged in as ${client.user.tag}`);
-
-  const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
-
-  try {
-    await rest.put(
-      Routes.applicationCommands(client.user.id),
-      { body: commands }
-    );
-    console.log('Slash commands registered');
-  } catch (err) {
-    console.error('Command registration failed:', err);
-  }
-
-  // Run once on startup, but don't send daily message
-  try {
-    await updateChannel(false);
-  } catch (err) {
-    console.error('Startup update failed:', err);
-  }
-
-  // Daily update at midnight Brisbane time
-  cron.schedule('0 0 * * *', async () => {
-    try {
-      await updateChannel(true);
-    } catch (err) {
-      console.error('Daily update failed:', err);
-    }
-  }, {
-    timezone: 'Australia/Brisbane'
-  });
-});
-
-client.on('interactionCreate', async interaction => {
-  if (!interaction.isChatInputCommand()) return;
-
-  // /day is public
-  if (interaction.commandName === 'day') {
-    const day = getCurrentDay();
-
-    return interaction.reply({
-      content: `📅 Current day is **${day}**`
-    });
-  }
-
-  // /noodlebox is public
-if (interaction.commandName === 'noodlebox') {
-  return interaction.reply({
-    content:
-`# 🍜 NoodleBox
-
-NoodleBox is a modded Minecraft server created as a fun server for friends; with mods from magic to mechanics, with a little something for anyone.
-
-The server, created and currently run by Liam, began more humble, with only a few friends and barely any mods, but grew to be very modded with many players and is currently on Season 3 of its existence.
-
-The current season began on March 21st 2026 running Forge 1.20.1.`
-  });
-}
-
-  // All other commands are owner-only
-  if (!OWNER_IDS.includes(interaction.user.id)) {
-    return interaction.reply({
-      content: 'You cannot use this command.',
-      ephemeral: true
-    });
-  }
-
-  // /update
-  if (interaction.commandName === 'update') {
-    try {
-      await updateChannel(true);
-
-      return interaction.reply({
-        content: 'Updated!',
-        ephemeral: true
-      });
-    } catch (err) {
-      console.error('Manual update failed:', err);
-
-      return interaction.reply({
-        content: 'Failed to update.',
-        ephemeral: true
-      });
-    }
-  }
-
-  // /setday temporary override
-  if (interaction.commandName === 'setday') {
-    const number = interaction.options.getInteger('number');
-
-    try {
-      const voiceChannel = await client.channels.fetch(CHANNEL_ID);
-      if (voiceChannel) {
-        await voiceChannel.setName(`Day: ${number}`);
-      }
-
-      const textChannel = await client.channels.fetch(MESSAGE_CHANNEL_ID);
-      if (textChannel) {
-        await textChannel.send(`📅 Today is **Day ${number}**`);
-      }
-
-      return interaction.reply({
-        content: `Temporarily set to Day ${number}`,
-        ephemeral: true
-      });
-    } catch (err) {
-      console.error('Setday failed:', err);
-
-      return interaction.reply({
-        content: 'Failed to set day.',
-        ephemeral: true
-      });
-    }
-  }
-
-  // /send sends in current channel
-  if (interaction.commandName === 'send') {
-    const message = interaction.options.getString('message');
-
-    try {
-      await interaction.channel.send(message);
-
-      return interaction.reply({
-        content: 'Message sent!',
-        ephemeral: true
-      });
-    } catch (err) {
-      console.error('Send failed:', err);
-
-      return interaction.reply({
-        content: 'Failed to send message.',
-        ephemeral: true
-      });
-    }
-  }
-
-  // /sendchannel sends in selected channel
-  if (interaction.commandName === 'sendchannel') {
-    const channel = interaction.options.getChannel('channel');
-    const message = interaction.options.getString('message');
-
-    try {
-      await channel.send(message);
-
-      return interaction.reply({
-        content: 'Message sent!',
-        ephemeral: true
-      });
-    } catch (err) {
-      console.error('Sendchannel failed:', err);
-
-      return interaction.reply({
-        content: 'Failed to send message.',
-        ephemeral: true
-      });
-    }
-  }
-});
-
+// Login
 client.login(process.env.TOKEN);
