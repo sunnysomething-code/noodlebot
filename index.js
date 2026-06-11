@@ -134,9 +134,8 @@ async function updateMinecraftStats() {
 
     if (data.online) {
       if (statusChannel) await statusChannel.setName(`Status: Online`);
-      if (playersChannel) await playersChannel.setName(`Players: ${data.players.online}/${data.players.max}`);
+      if (playersChannel) await playersChannel.setName(`Players:  ${data.players.online} / ${data.players.max}`);
       
-      // FIX: Dynamically extract port from API response
       const port = data.port ?? 25565;
       const latency = await getLatency(MINECRAFT_SERVER_IP, port);
       const pingDisplay = latency !== null ? `${latency}ms` : 'Online';
@@ -144,7 +143,7 @@ async function updateMinecraftStats() {
       
     } else {
       if (statusChannel) await statusChannel.setName('Status: Offline');
-      if (playersChannel) await playersChannel.setName('Players: 0/0');
+      if (playersChannel) await playersChannel.setName('Players:  0 / 0');
       if (latencyChannel) await latencyChannel.setName('Latency: N/A');
     }
     console.log('Minecraft status updated');
@@ -163,6 +162,10 @@ const commands = [
   new SlashCommandBuilder()
     .setName('noodlebox')
     .setDescription('Information about the NoodleBox server'),
+
+  new SlashCommandBuilder()
+    .setName('status')
+    .setDescription('Show detailed Minecraft server status'),
 
   new SlashCommandBuilder()
     .setName('update')
@@ -290,6 +293,48 @@ The current season began on March 21st 2026 running Forge 1.20.1.`
     });
   }
 
+  // /status
+  if (interaction.commandName === 'status') {
+
+    try {
+      await interaction.deferReply();
+      
+      const response = await fetch(`https://api.mcsrvstat.us/2/${MINECRAFT_SERVER_IP}`);
+      const data = await response.json();
+
+      if (!data.online) {
+        return interaction.editReply({
+          content: '🔴 The Minecraft server is currently offline.'
+        });
+      }
+
+      const port = data.port ?? 25565;
+      const latency = await getLatency(MINECRAFT_SERVER_IP, port);
+      const pingDisplay = latency !== null ? `${latency}ms` : 'Online';
+
+      let playerList = '';
+      if (data.players.list && data.players.list.length > 0) {
+        playerList = `\n**Players Online:** ${data.players.list.join(', ')}`;
+      }
+
+      return interaction.editReply({
+        content: 
+`## 🟢 NoodleBox Server Status
+**Status:** Online
+**Address:** \`${MINECRAFT_SERVER_IP}\`
+**Players:** ${data.players.online}/${data.players.max}${playerList}
+**Latency:** ${pingDisplay}
+**Version:** ${data.version}`
+      });
+
+    } catch (err) {
+      console.error('Status command failed:', err);
+      return interaction.editReply({
+        content: 'Failed to retrieve server status.'
+      });
+    }
+  }
+
   // OWNER-ONLY COMMANDS
 
   if (!OWNER_IDS.includes(interaction.user.id)) {
@@ -305,7 +350,7 @@ The current season began on March 21st 2026 running Forge 1.20.1.`
 
     try {
       await interaction.deferReply({ ephemeral: true });
-      await updateChannel(true);
+      await updateChannel(false);
       await updateMinecraftStats();
 
       return interaction.editReply({
