@@ -172,15 +172,6 @@ const commands = [
     .setDescription('Force update the day channel and Minecraft status'),
 
   new SlashCommandBuilder()
-    .setName('setday')
-    .setDescription('Temporarily set the day')
-    .addIntegerOption(option =>
-      option.setName('number')
-        .setDescription('Day number')
-        .setRequired(true)
-    ),
-
-  new SlashCommandBuilder()
     .setName('send')
     .setDescription('Send a message in this channel')
     .addStringOption(option =>
@@ -367,41 +358,6 @@ The current season began on March 21st 2026 running Forge 1.20.1.`
     }
   }
 
-  // /setday
-  if (interaction.commandName === 'setday') {
-
-    const number = interaction.options.getInteger('number');
-
-    try {
-
-      const voiceChannel = await client.channels.fetch(CHANNEL_ID);
-
-      if (voiceChannel) {
-        await voiceChannel.setName(`Day: ${number}`);
-      }
-
-      const textChannel = await client.channels.fetch(MESSAGE_CHANNEL_ID);
-
-      if (textChannel) {
-        await textChannel.send(`📅 Today is **Day ${number}**`);
-      }
-
-      return interaction.reply({
-        content: `Temporarily set to Day ${number}`,
-        ephemeral: true
-      });
-
-    } catch (err) {
-
-      console.error('Setday failed:', err);
-
-      return interaction.reply({
-        content: 'Failed to set day.',
-        ephemeral: true
-      });
-    }
-  }
-
   // /send
   if (interaction.commandName === 'send') {
 
@@ -421,7 +377,7 @@ The current season began on March 21st 2026 running Forge 1.20.1.`
       console.error('Send failed:', err);
 
       return interaction.reply({
-        content: 'Failed to set day.',
+        content: 'Failed to send message.',
         ephemeral: true
       });
     }
