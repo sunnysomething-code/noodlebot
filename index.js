@@ -136,8 +136,9 @@ async function updateMinecraftStats() {
       if (statusChannel) await statusChannel.setName(`Status: Online`);
       if (playersChannel) await playersChannel.setName(`Players: ${data.players.online}/${data.players.max}`);
       
-      // FIX: Use real TCP latency instead of boolean debug.ping
-      const latency = await getLatency(MINECRAFT_SERVER_IP);
+      // FIX: Dynamically extract port from API response
+      const port = data.port ?? 25565;
+      const latency = await getLatency(MINECRAFT_SERVER_IP, port);
       const pingDisplay = latency !== null ? `${latency}ms` : 'Online';
       if (latencyChannel) await latencyChannel.setName(`Latency: ${pingDisplay}`);
       
