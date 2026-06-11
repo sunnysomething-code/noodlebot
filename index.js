@@ -273,21 +273,20 @@ The current season began on March 21st 2026 running Forge 1.20.1.`
   if (interaction.commandName === 'update') {
 
     try {
+      await interaction.deferReply({ ephemeral: true });
       await updateChannel(true);
       await updateMinecraftStats();
 
-      return interaction.reply({
-        content: 'Bot channels and Minecraft status updated!',
-        ephemeral: true
+      return interaction.editReply({
+        content: 'Bot channels and Minecraft status updated!'
       });
 
     } catch (err) {
 
       console.error('Manual update failed:', err);
 
-      return interaction.reply({
-        content: 'Failed to update.',
-        ephemeral: true
+      return interaction.editReply({
+        content: 'Failed to update.'
       });
     }
   }
