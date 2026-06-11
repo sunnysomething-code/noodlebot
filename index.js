@@ -17,6 +17,13 @@ const CHANNEL_ID = '1492756482373058650';
 const MESSAGE_CHANNEL_ID = '1362246373960847550';
 const LOG_CHANNEL_ID = '1485118762196799590';
 
+const MINECRAFT_SERVER_IP = 'noodlebox-sequel.my.pebble.host';
+const MC_CHANNELS = {
+  STATUS: '1514579570177736874',
+  PLAYERS: '1514579403814862859',
+  LATENCY: '1514580677809410078'
+};
+
 const OWNER_IDS = [
   '871973279924093028',
   '1274565145149837469',
@@ -89,6 +96,32 @@ async function updateChannel(sendMessage = true) {
   console.log(`Updated to Day: ${day}`);
 }
 
+// Update Minecraft status
+async function updateMinecraftStats() {
+  try {
+    const response = await fetch(`https://api.mcsrvstat.us/2/${MINECRAFT_SERVER_IP}`);
+    const data = await response.json();
+
+    const statusChannel = await client.channels.fetch(MC_CHANNELS.STATUS);
+    const playersChannel = await client.channels.fetch(MC_CHANNELS.PLAYERS);
+    const latencyChannel = await client.channels.fetch(MC_CHANNELS.LATENCY);
+
+    if (data.online) {
+      if (statusChannel) await statusChannel.setName(`Status: Online`);
+      if (playersChannel) await playersChannel.setName(`Players: ${data.players.online}/${data.players.max}`);
+      const ping = data.debug?.ping ? `${data.debug.ping}ms` : 'Online';
+      if (latencyChannel) await latencyChannel.setName(`Latency: ${ping}`);
+    } else {
+      if (statusChannel) await statusChannel.setName('Status: Offline');
+      if (playersChannel) await playersChannel.setName('Players: 0/0');
+      if (latencyChannel) await latencyChannel.setName('Latency: N/A');
+    }
+    console.log('Minecraft status updated');
+  } catch (err) {
+    console.error('Failed to update Minecraft stats:', err);
+  }
+}
+
 // Slash commands
 const commands = [
 
@@ -102,7 +135,7 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName('update')
-    .setDescription('Force update the day channel'),
+    .setDescription('Force update the day channel and Minecraft status'),
 
   new SlashCommandBuilder()
     .setName('setday')
@@ -158,9 +191,10 @@ client.once('clientReady', async () => {
     console.error('Command registration failed:', err);
   }
 
-  // Startup update
+  // Startup updates
   try {
     await updateChannel(false);
+    await updateMinecraftStats();
 
   } catch (err) {
     console.error('Startup update failed:', err);
@@ -178,6 +212,15 @@ client.once('clientReady', async () => {
 
   }, {
     timezone: 'Australia/Brisbane'
+  });
+
+  // Minecraft status update every 5 minutes
+  cron.schedule('*/5 * * * *', async () => {
+    try {
+      await updateMinecraftStats();
+    } catch (err) {
+      console.error('Minecraft cron update failed:', err);
+    }
   });
 });
 
@@ -231,9 +274,10 @@ The current season began on March 21st 2026 running Forge 1.20.1.`
 
     try {
       await updateChannel(true);
+      await updateMinecraftStats();
 
       return interaction.reply({
-        content: 'Updated!',
+        content: 'Bot channels and Minecraft status updated!',
         ephemeral: true
       });
 
@@ -302,7 +346,7 @@ The current season began on March 21st 2026 running Forge 1.20.1.`
       console.error('Send failed:', err);
 
       return interaction.reply({
-        content: 'Failed to send message.',
+        content: 'Failed to set day.',
         ephemeral: true
       });
     }
