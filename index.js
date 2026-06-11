@@ -17,7 +17,7 @@ const CHANNEL_ID = '1492756482373058650';
 const MESSAGE_CHANNEL_ID = '1362246373960847550';
 const LOG_CHANNEL_ID = '1485118762196799590';
 
-const MINECRAFT_SERVER_IP = 'play.noodlebox.com'; // Placeholder, user should update this
+const MINECRAFT_SERVER_IP = 'noodlebox-sequel.my.pebble.host';
 const MC_CHANNELS = {
   STATUS: '1514579570177736874',
   PLAYERS: '1514579403814862859',
@@ -346,7 +346,7 @@ The current season began on March 21st 2026 running Forge 1.20.1.`
       console.error('Send failed:', err);
 
       return interaction.reply({
-        content: 'Failed to send message.',
+        content: 'Failed to set day.',
         ephemeral: true
       });
     }
