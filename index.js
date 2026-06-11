@@ -44,7 +44,7 @@ function getCurrentDay() {
     day: '2-digit'
   }).format(now);
 
-  const today = new Date(`\${brisbaneDate}T00:00:00+10:00`);
+  const today = new Date(`${brisbaneDate}T00:00:00+10:00`);
   const start = new Date('2026-03-21T00:00:00+10:00');
 
   return Math.floor((today - start) / (1000 * 60 * 60 * 24)) + 1;
@@ -59,16 +59,16 @@ async function logCommand(interaction) {
 
     const options = interaction.options.data
       .map(option => {
-        if (option.user) return \`@\${option.user.username}\`;
-        if (option.channel) return \`#\${option.channel.name}\`;
+        if (option.user) return `@${option.user.username}`;
+        if (option.channel) return `#${option.channel.name}`;
         return option.value;
       })
       .join(' ');
 
-    const commandText = \`/\${interaction.commandName} \${options}\`.trim();
+    const commandText = `/${interaction.commandName} ${options}`.trim();
 
     await logChannel.send(
-      \`<@\${interaction.user.id}>\n\${commandText}\`
+      `<@${interaction.user.id}>\n${commandText}`
     );
 
   } catch (err) {
@@ -84,7 +84,7 @@ async function updateChannel(sendMessage = true) {
   const voiceChannel = await client.channels.fetch(CHANNEL_ID);
 
   if (voiceChannel) {
-    await voiceChannel.setName(\`Day: \${day}\`);
+    await voiceChannel.setName(`Day: ${day}`);
   }
 
   // Send daily message
@@ -92,11 +92,11 @@ async function updateChannel(sendMessage = true) {
     const textChannel = await client.channels.fetch(MESSAGE_CHANNEL_ID);
 
     if (textChannel) {
-      await textChannel.send(\`📅 Today is **Day \${day}**\`);
+      await textChannel.send(`📅 Today is **Day ${day}**`);
     }
   }
 
-  console.log(\`Updated to Day: \${day}\`);
+  console.log(`Updated to Day: ${day}`);
 }
 
 // Helper to get TCP latency
@@ -125,7 +125,7 @@ async function getLatency(host, port = 25565) {
 // Update Minecraft status
 async function updateMinecraftStats() {
   try {
-    const response = await fetch(\`https://api.mcsrvstat.us/2/\${MINECRAFT_SERVER_IP}\`);
+    const response = await fetch(`https://api.mcsrvstat.us/2/${MINECRAFT_SERVER_IP}`);
     const data = await response.json();
 
     const statusChannel = await client.channels.fetch(MC_CHANNELS.STATUS);
@@ -133,13 +133,13 @@ async function updateMinecraftStats() {
     const latencyChannel = await client.channels.fetch(MC_CHANNELS.LATENCY);
 
     if (data.online) {
-      if (statusChannel) await statusChannel.setName(\`Status: Online\`);
-      if (playersChannel) await playersChannel.setName(\`Players: \${data.players.online}/\${data.players.max}\`);
+      if (statusChannel) await statusChannel.setName(`Status: Online`);
+      if (playersChannel) await playersChannel.setName(`Players: ${data.players.online}/${data.players.max}`);
       
       // FIX: Use real TCP latency instead of boolean debug.ping
       const latency = await getLatency(MINECRAFT_SERVER_IP);
-      const pingDisplay = latency !== null ? \`\${latency}ms\` : 'Online';
-      if (latencyChannel) await latencyChannel.setName(\`Latency: \${pingDisplay}\`);
+      const pingDisplay = latency !== null ? `${latency}ms` : 'Online';
+      if (latencyChannel) await latencyChannel.setName(`Latency: ${pingDisplay}`);
       
     } else {
       if (statusChannel) await statusChannel.setName('Status: Offline');
@@ -203,7 +203,7 @@ const commands = [
 
 // Bot startup
 client.once('clientReady', async () => {
-  console.log(\`Logged in as \${client.user.tag}\`);
+  console.log(`Logged in as ${client.user.tag}`);
 
   const rest = new REST({ version: '10' })
     .setToken(process.env.TOKEN);
@@ -270,7 +270,7 @@ client.on('interactionCreate', async interaction => {
     const day = getCurrentDay();
 
     return interaction.reply({
-      content: \`📅 Current day is **Day \${day}**\`
+      content: `📅 Current day is **Day ${day}**`
     });
   }
 
@@ -279,13 +279,13 @@ client.on('interactionCreate', async interaction => {
 
     return interaction.reply({
       content:
-\`# 🍜 NoodleBox
+`# 🍜 NoodleBox
 
 NoodleBox is a modded Minecraft server created as a fun server for friends; with mods from magic to mechanics, with a little something for anyone.
 
 The server, created and currently run by Liam, began more humble, with only a few friends and barely any mods, but grew to be very modded with many players and is currently on Season 3 of its existence.
 
-The current season began on March 21st 2026 running Forge 1.20.1.\`
+The current season began on March 21st 2026 running Forge 1.20.1.`
     });
   }
 
@@ -331,17 +331,17 @@ The current season began on March 21st 2026 running Forge 1.20.1.\`
       const voiceChannel = await client.channels.fetch(CHANNEL_ID);
 
       if (voiceChannel) {
-        await voiceChannel.setName(\`Day: \${number}\`);
+        await voiceChannel.setName(`Day: ${number}`);
       }
 
       const textChannel = await client.channels.fetch(MESSAGE_CHANNEL_ID);
 
       if (textChannel) {
-        await textChannel.send(\`📅 Today is **Day \${number}**\`);
+        await textChannel.send(`📅 Today is **Day ${number}**`);
       }
 
       return interaction.reply({
-        content: \`Temporarily set to Day \${number}\`,
+        content: `Temporarily set to Day ${number}`,
         ephemeral: true
       });
 
