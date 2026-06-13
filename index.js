@@ -339,7 +339,7 @@ The current season began on March 21st 2026 running Forge 1.20.1.`
 `## 🟢 NoodleBox Server Status
 **Status:** Online
 **Address:** \`${MINECRAFT_SERVER_IP}\`
-**Players:** ${data.players.online}/${data.players.max}${playerList}
+**Players:** ${data.players.online} / ${data.players.max}${playerList}
 **Latency:** ${pingDisplay}
 **Version:** ${data.version}`
       });
