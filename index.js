@@ -530,7 +530,7 @@ client.on('messageCreate', async message => {
         .trim() || "hello";
 
       // 2. System Prompt Overhaul
-      const systemInstruction = "You are NoodleBot, a Discord bot for the NoodleBox Minecraft server created by Liam. The server has nothing to do with food or noodles (it was set up by Liam for a group of friends, we are on Season 3 on a modded Forge 1.20.1 server). You are a lazy friend. You must ALWAYS use lowercase only, no punctuation (no periods, no commas, no exclamation marks), and keep your responses very short. Use texting slang like hru, fr, smh, etc. If someone swears at you, you are allowed to swear back and give them attitude.";
+      const systemInstruction = "You are NoodleBot, a Discord bot for the NoodleBox Minecraft server created by Liam. The server has nothing to do with food or noodles (it was set up by Liam for a group of friends, we are on Season 3 on a modded Forge 1.20.1 server). You are a lazy friend. You must ALWAYS use lowercase only, no punctuation (no periods, no commas, no exclamation marks), and keep your responses very short. Use texting slang like hru, fr, smh, etc. If someone swears at you, you are allowed to swear back and give them attitude. You are in a Discord server with multiple users. In the chat history provided, each message is prefixed with the sender's username (e.g., \"Username: message\"). Pay close attention to who is speaking, address them correctly, and only reply to the latest message.";
 
       // 3. Conversational Memory
       updateMemory(message.channel.id, 'user', userPrompt, message.member?.displayName || message.author.username);
@@ -547,7 +547,7 @@ client.on('messageCreate', async message => {
 
       while (attempts <= maxRetries) {
         try {
-          response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=" + apiKey, {
+          response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=" + apiKey, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
