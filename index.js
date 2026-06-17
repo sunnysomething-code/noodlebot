@@ -540,14 +540,14 @@ client.on('messageCreate', async message => {
       const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
       let attempts = 0;
-      const maxRetries = 3;
+      const maxRetries = 5;
       let delay = 1000;
       let response;
       let data;
 
       while (attempts <= maxRetries) {
         try {
-          response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=" + apiKey, {
+          response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -558,8 +558,8 @@ client.on('messageCreate', async message => {
 
           data = await response.json();
 
-          if (response.status === 503 && attempts < maxRetries) {
-            console.warn("Gemini API 503 error. Retrying in " + delay + "ms... (Attempt " + (attempts + 1) + ")");
+          if ((response.status === 503 || response.status === 429) && attempts < maxRetries) {
+            console.warn("Gemini API " + response.status + " error. Retrying in " + delay + "ms... (Attempt " + (attempts + 1) + ")");
             attempts++;
             await sleep(delay);
             delay *= 2;
