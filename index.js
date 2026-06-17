@@ -107,7 +107,7 @@ async function logCommand(interaction) {
     const commandText = ("/" + interaction.commandName + " " + options).trim();
 
     await logChannel.send(
-      "<@" + interaction.user.id + ">\\n" + commandText
+      "<@" + interaction.user.id + ">\n" + commandText
     );
 
   } catch (err) {
@@ -344,7 +344,7 @@ client.on('interactionCreate', async interaction => {
 
     return interaction.reply({
       content:
-"# 🍜 NoodleBox\\n\\nNoodleBox is a modded Minecraft server created as a fun server for friends; with mods from magic to mechanics, with a little something for anyone.\\n\\nThe server, created and currently run by Liam, began more humble, with only a few friends and barely any mods, but grew to be very modded with many players and is currently on Season 3 of its existence.\\n\\nThe current season began on March 21st 2026 running Forge 1.20.1."
+"# 🍜 NoodleBox\n\nNoodleBox is a modded Minecraft server created as a fun server for friends; with mods from magic to mechanics, with a little something for anyone.\n\nThe server, created and currently run by Liam, began more humble, with only a few friends and barely any mods, but grew to be very modded with many players and is currently on Season 3 of its existence.\n\nThe current season began on March 21st 2026 running Forge 1.20.1."
     });
   }
 
@@ -368,12 +368,12 @@ client.on('interactionCreate', async interaction => {
 
       let playerList = '';
       if (data.players.list && data.players.list.length > 0) {
-        playerList = "\\n**Players Online:** " + data.players.list.join(', ');
+        playerList = "\n**Players Online:** " + data.players.list.join(', ');
       }
 
       return interaction.editReply({
         content: 
-"## 🟢 NoodleBox Server Status\\n**Status:** Online\\n**Address:** \`" + MINECRAFT_SERVER_IP + "\`\\n**Players:** " + data.players.online + " / " + data.players.max + playerList + "\\n**Latency:** " + pingDisplay + "\\n**Version:** " + data.version
+"## 🟢 NoodleBox Server Status\n**Status:** Online\n**Address:** \`" + MINECRAFT_SERVER_IP + "\`\n**Players:** " + data.players.online + " / " + data.players.max + playerList + "\n**Latency:** " + pingDisplay + "\n**Version:** " + data.version
       });
 
     } catch (err) {
