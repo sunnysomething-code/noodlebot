@@ -523,7 +523,7 @@ client.on('messageCreate', async message => {
       });
 
       const data = await response.json();
-     if (!data.candidates \|\| data.candidates.length === 0 \|\| !data.candidates[0].content) {
+     if (!data.candidates || data.candidates.length === 0 || !data.candidates[0].content) {
         console.error("Gemini API Error or Block:", JSON.stringify(data));
         return message.reply("I'm having a bit of trouble thinking right now. Try again?");
       }
