@@ -221,15 +221,15 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName('update')
-    .setDescription('Owner Only'),
+    .setDescription('Force update the day channel and Minecraft status'),
 
   new SlashCommandBuilder()
     .setName('ai')
-    .setDescription('Owner Only'),
+    .setDescription('Toggle AI mode (Owner-only)'),
 
   new SlashCommandBuilder()
     .setName('send')
-    .setDescription('Owner Only')
+    .setDescription('Send a message in this channel')
     .addStringOption(option =>
       option.setName('message')
         .setDescription('Message to send')
@@ -238,7 +238,7 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName('sendchannel')
-    .setDescription('Owner Only')
+    .setDescription('Send a message in another channel')
     .addChannelOption(option =>
       option.setName('channel')
         .setDescription('Channel to send to')
@@ -518,16 +518,16 @@ client.on('messageCreate', async message => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ 
-            parts: [{ 
-              text: "You are NoodleBot, a helpful and friendly Discord bot for the NoodleBox modded Minecraft server. You should speak in a casual, helpful, and slightly playful tone. " + (prompt || "Hello!")
-            }] 
-          }]
+          contents: [{ parts: [{ text: `You are NoodleBot, the friendly mascot for the NoodleBox Minecraft server. Respond to this: ${prompt || "Hello!"}` }] }]
         })
       });
 
       const data = await response.json();
-      const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate a response.";
+     if (!data.candidates \|\| data.candidates.length === 0 \|\| !data.candidates[0].content) {
+        console.error("Gemini API Error or Block:", JSON.stringify(data));
+        return message.reply("I'm having a bit of trouble thinking right now. Try again?");
+      }
+      const aiText = data.candidates[0].content.parts[0].text;
 
       if (aiText.length > 2000) {
         const chunks = aiText.match(/[\s\S]{1,2000}/g);
@@ -548,3 +548,4 @@ client.on('messageCreate', async message => {
 
 // Login
 client.login(process.env.TOKEN);
+
