@@ -10,10 +10,19 @@ const {
 
 const cron = require('node-cron');
 const net = require('net');
+const fs = require('fs');
+const path = require('path');
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds]
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ]
 });
+
+// AI State Path
+const AI_STATE_PATH = path.join(__dirname, 'ai_state.json');
 
 // CONFIG
 const CHANNEL_ID = '1492756482373058650';
@@ -32,6 +41,22 @@ const OWNER_IDS = [
   '1274565145149837469',
   '917921977816195072'
 ];
+
+// Helper for AI state
+function getAIState() {
+  if (!fs.existsSync(AI_STATE_PATH)) {
+    return { enabled: false };
+  }
+  try {
+    return JSON.parse(fs.readFileSync(AI_STATE_PATH, 'utf8'));
+  } catch (err) {
+    return { enabled: false };
+  }
+}
+
+function setAIState(enabled) {
+  fs.writeFileSync(AI_STATE_PATH, JSON.stringify({ enabled }, null, 2));
+}
 
 // Calculate current Brisbane day
 function getCurrentDay() {
@@ -199,6 +224,10 @@ const commands = [
     .setDescription('Force update the day channel and Minecraft status'),
 
   new SlashCommandBuilder()
+    .setName('ai')
+    .setDescription('Toggle AI mode (Owner-only)'),
+
+  new SlashCommandBuilder()
     .setName('send')
     .setDescription('Send a message in this channel')
     .addStringOption(option =>
@@ -362,6 +391,17 @@ The current season began on March 21st 2026 running Forge 1.20.1.`
     });
   }
 
+  // /ai
+  if (interaction.commandName === 'ai') {
+    const state = getAIState();
+    const newState = !state.enabled;
+    setAIState(newState);
+    return interaction.reply({
+      content: `AI mode is now **${newState ? 'enabled' : 'disabled'}**.`,
+      ephemeral: true
+    });
+  }
+
   // /update
   if (interaction.commandName === 'update') {
 
@@ -435,6 +475,71 @@ The current season began on March 21st 2026 running Forge 1.20.1.`
     }
   }
 
+});
+
+// AI Message Handler
+client.on('messageCreate', async message => {
+  if (message.author.bot) return;
+
+  const state = getAIState();
+  if (!state.enabled) return;
+
+  const isMentioned = message.mentions.has(client.user) && !message.mentions.everyone;
+  
+  let isReplyToBot = false;
+  if (message.reference) {
+    try {
+      const repliedMessage = await message.channel.messages.fetch(message.reference.messageId);
+      isReplyToBot = repliedMessage.author.id === client.user.id;
+    } catch (err) {
+      console.error('Failed to fetch replied message:', err);
+    }
+  }
+
+  if (isMentioned || isReplyToBot) {
+    try {
+      await message.channel.sendTyping();
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return message.reply("Gemini API key is not configured. Please add `GEMINI_API_KEY` to your .env file.");
+      }
+
+      const prompt = message.content
+        .replace(`<@!${client.user.id}>`, '')
+        .replace(`<@${client.user.id}>`, '')
+        .trim();
+      
+      if (!prompt && isMentioned) {
+        return message.reply("Yes? How can I help?");
+      }
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt || "Hello!" }] }]
+        })
+      });
+
+      const data = await response.json();
+      const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate a response.";
+
+      if (aiText.length > 2000) {
+        const chunks = aiText.match(/[\s\S]{1,2000}/g);
+        for (const chunk of chunks) {
+          await message.reply(chunk);
+        }
+        return;
+      }
+
+      return message.reply(aiText);
+
+    } catch (err) {
+      console.error('Gemini API error:', err);
+      return message.reply("Sorry, there was an error processing your request.");
+    }
+  }
 });
 
 // Login
