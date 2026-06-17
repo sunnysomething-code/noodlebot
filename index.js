@@ -505,11 +505,22 @@ client.on('messageCreate', async message => {
   }
 
   if (isMentioned || isReplyToBot) {
+    let typingInterval;
     try {
       await message.channel.sendTyping();
+      
+      // Background typing loop (every 9 seconds)
+      typingInterval = setInterval(async () => {
+        try {
+          await message.channel.sendTyping();
+        } catch (err) {
+          console.error('Failed to send typing indicator in loop:', err);
+        }
+      }, 9000);
 
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
+        if (typingInterval) clearInterval(typingInterval);
         return message.reply("gemini api key is not configured");
       }
 
@@ -567,6 +578,9 @@ client.on('messageCreate', async message => {
         }
       }
 
+      // Stop typing before sending response
+      if (typingInterval) clearInterval(typingInterval);
+
       if (!data || !data.candidates || data.candidates.length === 0 || !data.candidates[0].content) {
         console.error("Gemini API Error or Block:", JSON.stringify(data));
         return message.reply("srry having trouble thinking rn");
@@ -588,6 +602,7 @@ client.on('messageCreate', async message => {
       return message.reply(aiText);
 
     } catch (err) {
+      if (typingInterval) clearInterval(typingInterval);
       console.error('Gemini API error:', err);
       return message.reply("srry error processing that");
     }
