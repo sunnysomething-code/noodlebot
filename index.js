@@ -24,6 +24,18 @@ const client = new Client({
 // AI State Path
 const AI_STATE_PATH = path.join(__dirname, 'ai_state.json');
 
+// Conversational Memory
+const conversationMemory = new Map();
+
+function updateMemory(channelId, role, text) {
+  if (!conversationMemory.has(channelId)) {
+    conversationMemory.set(channelId, []);
+  }
+  const memory = conversationMemory.get(channelId);
+  memory.push({ role, parts: [{ text }] });
+  if (memory.length > 15) memory.shift();
+}
+
 // CONFIG
 const CHANNEL_ID = '1492756482373058650';
 const MESSAGE_CHANNEL_ID = '1362246373960847550';
@@ -484,6 +496,11 @@ client.on('messageCreate', async message => {
   const state = getAIState();
   if (!state.enabled) return;
 
+  // 1. "Aiden" Vomit Rule
+  if (message.content.toLowerCase().includes('aiden')) {
+    return message.reply('🤢');
+  }
+
   const isMentioned = message.mentions.has(client.user) && !message.mentions.everyone;
   
   let isReplyToBot = false;
@@ -502,32 +519,40 @@ client.on('messageCreate', async message => {
 
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
-        return message.reply("Gemini API key is not configured. Please add `GEMINI_API_KEY` to your .env file.");
+        return message.reply("gemini api key is not configured");
       }
 
-      const prompt = message.content
+      const userPrompt = message.content
         .replace(`<@!${client.user.id}>`, '')
         .replace(`<@${client.user.id}>`, '')
-        .trim();
-      
-      if (!prompt && isMentioned) {
-        return message.reply("Yes? How can I help?");
-      }
+        .trim() || "hello";
+
+      // 2. System Prompt Overhaul
+      const systemInstruction = "You are NoodleBot, a Discord bot for the NoodleBox Minecraft server created by Lewis. The server has nothing to do with food or noodles (it was set up by Liam for a group of friends, we are on Season 3 on a modded Forge 1.20.1 server). You are a lazy friend. You must ALWAYS use lowercase only, no punctuation (no periods, no commas, no exclamation marks), and keep your responses very short. Use texting slang like hru, fr, smh, etc. If someone swears at you, you are allowed to swear back and give them attitude.";
+
+      // 3. Conversational Memory
+      updateMemory(message.channel.id, 'user', userPrompt);
+      const history = conversationMemory.get(message.channel.id);
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: `You are NoodleBot, the friendly mascot for the NoodleBox Minecraft server. Respond to this: ${prompt || "Hello!"}` }] }]
+          system_instruction: { parts: [{ text: systemInstruction }] },
+          contents: history
         })
       });
 
       const data = await response.json();
-     if (!data.candidates || data.candidates.length === 0 || !data.candidates[0].content) {
+      if (!data.candidates || data.candidates.length === 0 || !data.candidates[0].content) {
         console.error("Gemini API Error or Block:", JSON.stringify(data));
-        return message.reply("I'm having a bit of trouble thinking right now. Try again?");
+        return message.reply("srry having trouble thinking rn");
       }
+      
       const aiText = data.candidates[0].content.parts[0].text;
+      
+      // Update memory with bot response
+      updateMemory(message.channel.id, 'model', aiText);
 
       if (aiText.length > 2000) {
         const chunks = aiText.match(/[\s\S]{1,2000}/g);
@@ -541,7 +566,7 @@ client.on('messageCreate', async message => {
 
     } catch (err) {
       console.error('Gemini API error:', err);
-      return message.reply("Sorry, there was an error processing your request.");
+      return message.reply("srry error processing that");
     }
   }
 });
