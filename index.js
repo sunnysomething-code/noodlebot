@@ -221,15 +221,15 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName('update')
-    .setDescription('Force update the day channel and Minecraft status'),
+    .setDescription('Owner Only'),
 
   new SlashCommandBuilder()
     .setName('ai')
-    .setDescription('Toggle AI mode (Owner-only)'),
+    .setDescription('Owner Only'),
 
   new SlashCommandBuilder()
     .setName('send')
-    .setDescription('Send a message in this channel')
+    .setDescription('Owner Only')
     .addStringOption(option =>
       option.setName('message')
         .setDescription('Message to send')
@@ -238,7 +238,7 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName('sendchannel')
-    .setDescription('Send a message in another channel')
+    .setDescription('Owner Only')
     .addChannelOption(option =>
       option.setName('channel')
         .setDescription('Channel to send to')
@@ -518,7 +518,11 @@ client.on('messageCreate', async message => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt || "Hello!" }] }]
+          contents: [{ 
+            parts: [{ 
+              text: "You are NoodleBot, a helpful and friendly Discord bot for the NoodleBox modded Minecraft server. You should speak in a casual, helpful, and slightly playful tone. " + (prompt || "Hello!")
+            }] 
+          }]
         })
       });
 
