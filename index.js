@@ -27,13 +27,14 @@ const AI_STATE_PATH = path.join(__dirname, 'ai_state.json');
 // Conversational Memory
 const conversationMemory = new Map();
 
-function updateMemory(channelId, role, text) {
+function updateMemory(channelId, role, text, username = null) {
   if (!conversationMemory.has(channelId)) {
     conversationMemory.set(channelId, []);
   }
   const memory = conversationMemory.get(channelId);
-  memory.push({ role, parts: [{ text }] });
-  if (memory.length > 15) memory.shift();
+  const content = (role === 'user' && username) ? (username + ": " + text) : text;
+  memory.push({ role, parts: [{ text: content }] });
+  if (memory.length > 50) memory.shift();
 }
 
 // CONFIG
@@ -81,7 +82,7 @@ function getCurrentDay() {
     day: '2-digit'
   }).format(now);
 
-  const today = new Date(`${brisbaneDate}T00:00:00+10:00`);
+  const today = new Date(brisbaneDate + "T00:00:00+10:00");
   const start = new Date('2026-03-21T00:00:00+10:00');
 
   return Math.floor((today - start) / (1000 * 60 * 60 * 24)) + 1;
@@ -96,16 +97,16 @@ async function logCommand(interaction) {
 
     const options = interaction.options.data
       .map(option => {
-        if (option.user) return `@${option.user.username}`;
-        if (option.channel) return `#${option.channel.name}`;
+        if (option.user) return "@" + option.user.username;
+        if (option.channel) return "#" + option.channel.name;
         return option.value;
       })
       .join(' ');
 
-    const commandText = `/${interaction.commandName} ${options}`.trim();
+    const commandText = ("/" + interaction.commandName + " " + options).trim();
 
     await logChannel.send(
-      `<@${interaction.user.id}>\n${commandText}`
+      "<@" + interaction.user.id + ">\\n" + commandText
     );
 
   } catch (err) {
@@ -121,7 +122,7 @@ async function updateChannel(sendMessage = true) {
   const voiceChannel = await client.channels.fetch(CHANNEL_ID);
 
   if (voiceChannel) {
-    await voiceChannel.setName(`Day: ${day}`);
+    await voiceChannel.setName("Day: " + day);
   }
 
   // Send daily message
@@ -129,11 +130,11 @@ async function updateChannel(sendMessage = true) {
     const textChannel = await client.channels.fetch(MESSAGE_CHANNEL_ID);
 
     if (textChannel) {
-      await textChannel.send(`📅 Today is **Day ${day}**`);
+      await textChannel.send("📅 Today is **Day " + day + "**");
     }
   }
 
-  console.log(`Updated to Day: ${day}`);
+  console.log("Updated to Day: " + day);
 }
 
 // Helper to get TCP latency
@@ -165,12 +166,12 @@ async function fetchMinecraftData() {
   const timeoutId = setTimeout(() => controller.abort(), 5000);
 
   try {
-    const response = await fetch(`https://api.mcsrvstat.us/2/${MINECRAFT_SERVER_IP}`, {
+    const response = await fetch("https://api.mcsrvstat.us/2/" + MINECRAFT_SERVER_IP, {
       signal: controller.signal
     });
 
     if (!response.ok) {
-      throw new Error(`API returned status ${response.status}`);
+      throw new Error("API returned status " + response.status);
     }
 
     const contentType = response.headers.get('content-type');
@@ -194,13 +195,13 @@ async function updateMinecraftStats() {
     const latencyChannel = await client.channels.fetch(MC_CHANNELS.LATENCY);
 
     if (data.online) {
-      if (statusChannel) await statusChannel.setName(`Status: Online`);
-      if (playersChannel) await playersChannel.setName(`Players:  ${data.players.online} / ${data.players.max}`);
+      if (statusChannel) await statusChannel.setName("Status: Online");
+      if (playersChannel) await playersChannel.setName("Players:  " + data.players.online + " / " + data.players.max);
       
-      const port = data.port ?? 25565;
+      const port = data.port || 25565;
       const latency = await getLatency(MINECRAFT_SERVER_IP, port);
-      const pingDisplay = latency !== null ? `${latency}ms` : 'Online';
-      if (latencyChannel) await latencyChannel.setName(`Latency: ${pingDisplay}`);
+      const pingDisplay = latency !== null ? (latency + "ms") : 'Online';
+      if (latencyChannel) await latencyChannel.setName("Latency: " + pingDisplay);
       
     } else {
       if (statusChannel) await statusChannel.setName('Status: Offline');
@@ -266,7 +267,7 @@ const commands = [
 
 // Bot startup
 client.once('clientReady', async () => {
-  console.log(`Logged in as ${client.user.tag}`);
+  console.log("Logged in as " + client.user.tag);
 
   const rest = new REST({ version: '10' })
     .setToken(process.env.TOKEN);
@@ -333,7 +334,7 @@ client.on('interactionCreate', async interaction => {
     const day = getCurrentDay();
 
     return interaction.reply({
-      content: `📅 Current day is **Day ${day}**`
+      content: "📅 Current day is **Day " + day + "**"
     });
   }
 
@@ -342,13 +343,7 @@ client.on('interactionCreate', async interaction => {
 
     return interaction.reply({
       content:
-`# 🍜 NoodleBox
-
-NoodleBox is a modded Minecraft server created as a fun server for friends; with mods from magic to mechanics, with a little something for anyone.
-
-The server, created and currently run by Liam, began more humble, with only a few friends and barely any mods, but grew to be very modded with many players and is currently on Season 3 of its existence.
-
-The current season began on March 21st 2026 running Forge 1.20.1.`
+"# 🍜 NoodleBox\\n\\nNoodleBox is a modded Minecraft server created as a fun server for friends; with mods from magic to mechanics, with a little something for anyone.\\n\\nThe server, created and currently run by Liam, began more humble, with only a few friends and barely any mods, but grew to be very modded with many players and is currently on Season 3 of its existence.\\n\\nThe current season began on March 21st 2026 running Forge 1.20.1."
     });
   }
 
@@ -366,23 +361,18 @@ The current season began on March 21st 2026 running Forge 1.20.1.`
         });
       }
 
-      const port = data.port ?? 25565;
+      const port = data.port || 25565;
       const latency = await getLatency(MINECRAFT_SERVER_IP, port);
-      const pingDisplay = latency !== null ? `${latency}ms` : 'Online';
+      const pingDisplay = latency !== null ? (latency + "ms") : 'Online';
 
       let playerList = '';
       if (data.players.list && data.players.list.length > 0) {
-        playerList = `\n**Players Online:** ${data.players.list.join(', ')}`;
+        playerList = "\\n**Players Online:** " + data.players.list.join(', ');
       }
 
       return interaction.editReply({
         content: 
-`## 🟢 NoodleBox Server Status
-**Status:** Online
-**Address:** \`${MINECRAFT_SERVER_IP}\`
-**Players:** ${data.players.online} / ${data.players.max}${playerList}
-**Latency:** ${pingDisplay}
-**Version:** ${data.version}`
+"## 🟢 NoodleBox Server Status\\n**Status:** Online\\n**Address:** \`" + MINECRAFT_SERVER_IP + "\`\\n**Players:** " + data.players.online + " / " + data.players.max + playerList + "\\n**Latency:** " + pingDisplay + "\\n**Version:** " + data.version
       });
 
     } catch (err) {
@@ -409,7 +399,7 @@ The current season began on March 21st 2026 running Forge 1.20.1.`
     const newState = !state.enabled;
     setAIState(newState);
     return interaction.reply({
-      content: `AI mode is now **${newState ? 'enabled' : 'disabled'}**.`,
+      content: "AI mode is now **" + (newState ? 'enabled' : 'disabled') + "**. ",
       ephemeral: true
     });
   }
@@ -523,15 +513,15 @@ client.on('messageCreate', async message => {
       }
 
       const userPrompt = message.content
-        .replace(`<@!${client.user.id}>`, '')
-        .replace(`<@${client.user.id}>`, '')
+        .replace("<@!" + client.user.id + ">", '')
+        .replace("<@" + client.user.id + ">", '')
         .trim() || "hello";
 
       // 2. System Prompt Overhaul
       const systemInstruction = "You are NoodleBot, a Discord bot for the NoodleBox Minecraft server created by Lewis. The server has nothing to do with food or noodles (it was set up by Liam for a group of friends, we are on Season 3 on a modded Forge 1.20.1 server). You are a lazy friend. You must ALWAYS use lowercase only, no punctuation (no periods, no commas, no exclamation marks), and keep your responses very short. Use texting slang like hru, fr, smh, etc. If someone swears at you, you are allowed to swear back and give them attitude.";
 
       // 3. Conversational Memory
-      updateMemory(message.channel.id, 'user', userPrompt);
+      updateMemory(message.channel.id, 'user', userPrompt, message.member?.displayName || message.author.username);
       const history = conversationMemory.get(message.channel.id);
 
       // Helper for sleep/delay
@@ -545,7 +535,7 @@ client.on('messageCreate', async message => {
 
       while (attempts <= maxRetries) {
         try {
-          response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+          response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=" + apiKey, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -557,7 +547,7 @@ client.on('messageCreate', async message => {
           data = await response.json();
 
           if (response.status === 503 && attempts < maxRetries) {
-            console.warn(`Gemini API 503 error. Retrying in ${delay}ms... (Attempt ${attempts + 1})`);
+            console.warn("Gemini API 503 error. Retrying in " + delay + "ms... (Attempt " + (attempts + 1) + ")");
             attempts++;
             await sleep(delay);
             delay *= 2;
@@ -566,7 +556,7 @@ client.on('messageCreate', async message => {
           break;
         } catch (fetchErr) {
           if (attempts < maxRetries) {
-            console.error(`Fetch error: ${fetchErr.message}. Retrying in ${delay}ms...`);
+            console.error("Fetch error: " + fetchErr.message + ". Retrying in " + delay + "ms...");
             attempts++;
             await sleep(delay);
             delay *= 2;
@@ -587,7 +577,7 @@ client.on('messageCreate', async message => {
       updateMemory(message.channel.id, 'model', aiText);
 
       if (aiText.length > 2000) {
-        const chunks = aiText.match(/[\s\S]{1,2000}/g);
+        const chunks = aiText.match(/[\\s\\S]{1,2000}/g);
         for (const chunk of chunks) {
           await message.reply(chunk);
         }
