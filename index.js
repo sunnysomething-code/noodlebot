@@ -164,7 +164,7 @@ async function getLatency(host, port = 25565) {
 // Robust fetch for Minecraft API
 async function fetchMinecraftData() {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
 
   try {
     const response = await fetch("https://api.mcsrvstat.us/2/" + MINECRAFT_SERVER_IP, {
