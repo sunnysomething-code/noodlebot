@@ -534,17 +534,49 @@ client.on('messageCreate', async message => {
       updateMemory(message.channel.id, 'user', userPrompt);
       const history = conversationMemory.get(message.channel.id);
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemInstruction }] },
-          contents: history
-        })
-      });
+      // Helper for sleep/delay
+      const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-      const data = await response.json();
-      if (!data.candidates || data.candidates.length === 0 || !data.candidates[0].content) {
+      let attempts = 0;
+      const maxRetries = 3;
+      let delay = 1000;
+      let response;
+      let data;
+
+      while (attempts <= maxRetries) {
+        try {
+          response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              system_instruction: { parts: [{ text: systemInstruction }] },
+              contents: history
+            })
+          });
+
+          data = await response.json();
+
+          if (response.status === 503 && attempts < maxRetries) {
+            console.warn(`Gemini API 503 error. Retrying in ${delay}ms... (Attempt ${attempts + 1})`);
+            attempts++;
+            await sleep(delay);
+            delay *= 2;
+            continue;
+          }
+          break;
+        } catch (fetchErr) {
+          if (attempts < maxRetries) {
+            console.error(`Fetch error: ${fetchErr.message}. Retrying in ${delay}ms...`);
+            attempts++;
+            await sleep(delay);
+            delay *= 2;
+            continue;
+          }
+          throw fetchErr;
+        }
+      }
+
+      if (!data || !data.candidates || data.candidates.length === 0 || !data.candidates[0].content) {
         console.error("Gemini API Error or Block:", JSON.stringify(data));
         return message.reply("srry having trouble thinking rn");
       }
