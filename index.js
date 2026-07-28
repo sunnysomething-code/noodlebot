@@ -177,10 +177,6 @@ const commands = [
     .setDescription('Force update the day channel and Minecraft status'),
 
   new SlashCommandBuilder()
-    .setName('ai')
-    .setDescription('Toggle AI mode (Owner-only)'),
-
-  new SlashCommandBuilder()
     .setName('send')
     .setDescription('Send a message in this channel')
     .addStringOption(option =>
