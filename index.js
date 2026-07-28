@@ -30,7 +30,11 @@ function getCurrentDay() {
 
 // Log commands async function logCommand(interaction) {
   try {
-    const logChannel = await client.channels.fetch(LOG_CHANNEL_ID);
+    async function logCommand(interaction) {
+  const logChannel = await client.channels.fetch(LOG_CHANNEL_ID)
+  if (!logChannel) return
+  // rest of your logging logic...
+}
     if (!logChannel) return;
     const options = interaction.options.data
       .map(option => {
