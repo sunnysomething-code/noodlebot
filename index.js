@@ -51,7 +51,7 @@ function getCurrentDay() {
   }).format(now);
 
   const today = new Date(brisbaneDate + "T00:00:00+10:00");
-  const start = new Date('2026-03-21T00:00:00+10:00');
+  const start = new Date('2026-08-02T00:00:00+10:00');
 
   return Math.floor((today - start) / (1000 * 60 * 60 * 24)) + 1;
 }
