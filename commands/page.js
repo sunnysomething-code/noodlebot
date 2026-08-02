@@ -13,19 +13,19 @@ module.exports = {
   async execute(interaction) {
     const buttons = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setLabel(':people_holding_hands: Players')
+        .setLabel('🧑‍🤝‍🧑 Players')
         .setStyle(ButtonStyle.Link)
         .setURL('https://noodlebox.cc/players'),
       new ButtonBuilder()
-        .setLabel(':camera: Gallery')
+        .setLabel('📷 Gallery')
         .setStyle(ButtonStyle.Link)
         .setURL('https://noodlebox.cc/gallery'),
       new ButtonBuilder()
-        .setLabel(':cityscape: Societies')
+        .setLabel('🏙️ Societies')
         .setStyle(ButtonStyle.Link)
         .setURL('https://noodlebox.cc/societies'),
       new ButtonBuilder()
-        .setLabel(':map: Roadmap')
+        .setLabel('🗺️ Roadmap')
         .setStyle(ButtonStyle.Link)
         .setURL('https://noodlebox.cc/roadmap')
     );
