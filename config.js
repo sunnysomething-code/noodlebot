@@ -3,7 +3,7 @@ module.exports = {
   MESSAGE_CHANNEL_ID: '1531283686413303950', // General Channel
   LOG_CHANNEL_ID: '1485118762196799590', // Log Channel
 
-  MINECRAFT_SERVER_IP: 'mc.noodlebox.cc',
+  MINECRAFT_SERVER_IP: 'noodlebox-sequel.my.pebble.host',
   MC_CHANNELS: {
     STATUS: '1531589294899331082',
     PLAYERS: '1531589332446478426',
