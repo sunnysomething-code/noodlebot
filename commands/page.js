@@ -13,25 +13,25 @@ module.exports = {
   async execute(interaction) {
     const buttons = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setLabel('Players')
+        .setLabel(':people_holding_hands: Players')
         .setStyle(ButtonStyle.Link)
         .setURL('https://noodlebox.cc/players'),
       new ButtonBuilder()
-        .setLabel('Gallery')
+        .setLabel(':camera: Gallery')
         .setStyle(ButtonStyle.Link)
         .setURL('https://noodlebox.cc/gallery'),
       new ButtonBuilder()
-        .setLabel('Societies')
+        .setLabel(':cityscape: Societies')
         .setStyle(ButtonStyle.Link)
         .setURL('https://noodlebox.cc/societies'),
       new ButtonBuilder()
-        .setLabel('Roadmap')
+        .setLabel(':map: Roadmap')
         .setStyle(ButtonStyle.Link)
         .setURL('https://noodlebox.cc/roadmap')
     );
 
     await interaction.reply({
-      content: '**Go to direct webpage:**',
+      content: 'Go to direct webpage:',
       components: [buttons],
     });
   },
