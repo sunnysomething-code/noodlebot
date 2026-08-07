@@ -3,7 +3,7 @@ module.exports = {
   MESSAGE_CHANNEL_ID: '1531283686413303950', // General Channel
   LOG_CHANNEL_ID: '1485118762196799590', // Log Channel
 
-  MINECRAFT_SERVER_IP: 'noodlebox-sequel.my.pebble.host',
+  MINECRAFT_SERVER_IP: 'mc.noodlebox.cc',
   MC_CHANNELS: {
     STATUS: '1531589294899331082',
     PLAYERS: '1531589332446478426',
@@ -16,5 +16,5 @@ module.exports = {
     '367796500182597643', // Liam
   ],
 
-  DAY_START_DATE: '2026-08-02T00:00:00+10:00',
+  DAY_START_DATE: '2026-08-06T00:00:00+10:00',
 };
